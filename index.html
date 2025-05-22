@@ -1,70 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Whiteboard Tool</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="The most advanced whiteboard web app for drawing, sketching, annotating, and collaboration." />
+  <meta name="author" content="Whiteboard Pro Team" />
+  <title>Whiteboard</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-
-  <!-- Toolbar Section -->
-  <div id="toolbar">
-    <button id="drawBtn" title="Drawing Mode">✏️ Draw</button>
-    <input type="range" id="brushSize" min="1" max="30" value="5" title="Brush Size">
-    <button id="textBtn" title="Add Text">📝 Text</button>
-    <label class="colorPickerLabel" title="Pick Color">
-      🎨
-    <input type="color" id="colorPicker">
-    </label>
-    <button id="highlightBtn" title="Highlighter Mode">🖍️ Highlighter</button>
-
-   
-    <button id="undoBtn" title="Undo">↩️ Undo</button>
-    <button id="redoBtn" title="Redo">↪️ Redo</button>
-    <button id="clearBtn" title="Clear Board">🧹 Clear</button>
-    <button id="downloadBtn" title="Download PDF">📄 Download</button>
-    <button id="shareBtn" title="Get Share Link">🔗 Share</button>
-
+  <!-- Navbar -->
+  <header class="navbar" role="navigation" aria-label="Main Navigation">
+    <div class="logo" role="banner">Whiteboard</div>
     
-  </div>
+    <nav class="toolbar" role="toolbar" aria-label="Drawing Tools">
 
+      <!-- Options -->
+      <div class="tool-section">
+        
+        <div class="tool-group">
+        <label for="toolSelector">Tool:</label>
+        <select id="toolSelector">
+          <option value="pen">Pen</option>
+          <option value="marker">Marker</option>
+          <option value="eraser">Eraser</option>
+          <option value="text">Text</option>
+        </select>
+        
+        <label for="colorPicker">Color:</label>
+        <input type="color" id="colorPicker" value="#000000" />
+        <button id="undoBtn">Undo</button>
+        <button id="redoBtn">Redo</button>
+        <button id="clearCanvasBtn">Clear</button>
+        <button id="downloadBtn">Download</button>
+        <button id="shareBtn">Share</button>
+        </div>
+
+      </div>
+    </nav>
+  </header>
+
+  <!-- Main Canvas -->
+  <main role="main">
+    <div id="canvasWrapper">
+      <canvas id="whiteboardCanvas" width="1920" height="1080"></canvas>
+      <div id="canvasOverlay"></div>
+      <div id="canvasGrid"></div>
+    </div>
+  </main>
 
   
-  <!-- Canvas Section -->
-  <div id="canvasContainer">
-    <canvas id="whiteboard"></canvas>
-  </div>
-  
-    
 
-
-  <div id="canvasBgPicker">
-    <label for="bgColorInput">🎨 Backgroung</label>
-    <input type="color" id="bgColorInput" value="#ffffff" />
-  </div>
-  
-  
-
-
-
-
-
-
-<!-- Zoom Controls Section -->
-<div id="zoomControls">
-  <button id="zoomIn">➕</button>
-  <span id="zoomLevel">100%</span>
-  <button id="zoomOut">➖</button>
-  <input type="range" id="zoomSlider" min="1" max="100" step="0.1" value="1" title="Zoom Level">
-</div>
-
-
-
-
-
-
-  <!-- JavaScript Files -->
+  <!-- Scripts -->
   <script src="script.js"></script>
 </body>
 </html>

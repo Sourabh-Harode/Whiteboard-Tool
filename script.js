@@ -1,383 +1,137 @@
-// Setup Canvas
-const canvas = document.getElementById('whiteboard');
-const ctx = canvas.getContext('2d');
 
+document.addEventListener('DOMContentLoaded', () => {
+  const canvas = document.getElementById('whiteboardCanvas');
+  const ctx = canvas.getContext('2d');
+  const colorPicker = document.getElementById('colorPicker');
+  const toolSelector = document.getElementById('toolSelector');
+  const undoBtn = document.getElementById('undoBtn');
+  const redoBtn = document.getElementById('redoBtn');
+  const clearCanvasBtn = document.getElementById('clearCanvasBtn');
+  const downloadBtn = document.getElementById('downloadBtn');
+  const shareBtn = document.getElementById('shareBtn');
 
+  let drawing = false;
+  let currentTool = 'pen';
+  let color = '#000000';
+  let paths = [];
+  let undonePaths = [];
+  let currentPath = [];
 
-
-
-
-
-
-
-// Create Eraser Button
-const eraserBtn = document.createElement('button');
-eraserBtn.id = 'eraserBtn';
-eraserBtn.textContent = '🧽 Eraser';
-eraserBtn.className = 'tool-btn';
-document.getElementById('toolbar').appendChild(eraserBtn);
-
-// Eraser Logic: sets brushColor to canvas background
-eraserBtn.addEventListener('click', () => {
-  currentMode = 'draw'; // keep in draw mode
-  const canvasBg = getComputedStyle(canvas).getPropertyValue('background-color') || '#ffffff';
-  brushColor = canvasBg.trim();
-});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-// Adjust canvas size
-function resizeCanvas() {
-    canvas.width = canvas.parentElement.clientWidth;
-    canvas.height = canvas.parentElement.clientHeight;
-}
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
-
-// Drawing state
-let painting = false;
-let currentMode = 'draw'; // draw or text
-let undoStack = [];
-let redoStack = [];
-
-// Settings
-let brushColor = '#000000';
-let brushWidth = 5;
-ctx.lineCap = 'round';
-ctx.lineJoin = 'round';
-
-// Save canvas state for Undo
-function saveState() {
-    undoStack.push(canvas.toDataURL());
-    if (undoStack.length > 20) undoStack.shift(); // Limit history
-    redoStack = []; // Clear redo stack on new action
-}
-
-// Start Drawing or Text
-function startPosition(e) {
-    if (currentMode === 'text') {
-        saveState();
-        addText(e);
-    } else {
-        painting = true;
-        saveState();
-        draw(e);
-    }
-}
-
-// End Drawing
-function endPosition() {
-    painting = false;
+  function startDrawing(e) {
+    drawing = true;
+    currentPath = [];
     ctx.beginPath();
-}
+    const pos = getMousePos(e);
+    ctx.moveTo(pos.x, pos.y);
+    currentPath.push({ x: pos.x, y: pos.y, color, tool: currentTool });
+  }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
-
-document.getElementById('drawBtn').onclick = () => {
-    currentMode = 'draw';
-    brushColor = document.getElementById('colorPicker').value;
-  };
-  
-
-
-// Draw (Pen Mode)
-function draw(e) {
-    if (!painting) return;
-
-    const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    ctx.lineWidth = brushWidth;
-    ctx.strokeStyle = brushColor;
-
-    ctx.lineTo(x, y);
+  function draw(e) {
+    if (!drawing) return;
+    const pos = getMousePos(e);
+    ctx.lineTo(pos.x, pos.y);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = currentTool === 'marker' ? 6 : currentTool === 'eraser' ? 20 : 2;
+    ctx.globalCompositeOperation = currentTool === 'eraser' ? 'destination-out' : 'source-over';
     ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-}
+    currentPath.push({ x: pos.x, y: pos.y, color, tool: currentTool });
+  }
 
+  function endDrawing() {
+    if (drawing) {
+      paths.push(currentPath);
+      undonePaths = [];
+    }
+    drawing = false;
+    ctx.closePath();
+  }
 
-
-
-
-
-
-
-
-
-
-
-
-
-// Add Text Function
-function addText(e) {
+  function getMousePos(e) {
     const rect = canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top
+    };
+  }
 
-    const text = prompt("Enter text:");
-    if (text) {
-        ctx.fillStyle = brushColor;
-        ctx.font = `${brushWidth * 4}px Arial`;
-        ctx.fillText(text, x, y);
-    }
-}
-
-// Event Listeners
-canvas.addEventListener('mousedown', startPosition);
-canvas.addEventListener('mouseup', endPosition);
-canvas.addEventListener('mousemove', draw);
-
-// Toolbar Buttons
-document.getElementById('drawBtn').onclick = () => currentMode = 'draw';
-document.getElementById('textBtn').onclick = () => currentMode = 'text';
-
-document.getElementById('colorPicker').addEventListener('input', (e) => {
-    brushColor = e.target.value;
-});
-
-document.getElementById('brushSize').addEventListener('input', (e) => {
-    brushWidth = e.target.value;
-});
-
-// Undo
-document.getElementById('undoBtn').onclick = () => {
-    if (undoStack.length > 0) {
-        redoStack.push(canvas.toDataURL());
-        const imgData = undoStack.pop();
-        const img = new Image();
-        img.src = imgData;
-        img.onload = function () {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        }
-    }
-};
-
-// Redo
-document.getElementById('redoBtn').onclick = () => {
-    if (redoStack.length > 0) {
-        undoStack.push(canvas.toDataURL());
-        const imgData = redoStack.pop();
-        const img = new Image();
-        img.src = imgData;
-        img.onload = function () {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        }
-    }
-};
-
-// Clear
-document.getElementById('clearBtn').onclick = () => {
-    saveState();
+  function redrawCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-};
+    for (const path of paths) {
+      ctx.beginPath();
+      for (let i = 0; i < path.length; i++) {
+        const point = path[i];
+        ctx.lineWidth = point.tool === 'marker' ? 6 : point.tool === 'eraser' ? 20 : 2;
+        ctx.strokeStyle = point.color;
+        ctx.globalCompositeOperation = point.tool === 'eraser' ? 'destination-out' : 'source-over';
+        if (i === 0) {
+          ctx.moveTo(point.x, point.y);
+        } else {
+          ctx.lineTo(point.x, point.y);
+        }
+      }
+      ctx.stroke();
+      ctx.closePath();
+    }
+  }
 
-// Download as PNG
-document.getElementById('downloadBtn').onclick = () => {
+  function undo() {
+    if (paths.length > 0) {
+      undonePaths.push(paths.pop());
+      redrawCanvas();
+    }
+  }
+
+  function redo() {
+    if (undonePaths.length > 0) {
+      paths.push(undonePaths.pop());
+      redrawCanvas();
+    }
+  }
+
+  function clearCanvas() {
+    paths = [];
+    undonePaths = [];
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+
+  function downloadCanvas() {
     const link = document.createElement('a');
-    link.download = 'whiteboard_drawing.png';
+    link.download = 'whiteboard.png';
     link.href = canvas.toDataURL();
     link.click();
-};
+  }
 
-// Shareable Link
-document.getElementById('shareBtn').onclick = () => {
-    const dataURL = canvas.toDataURL();
-    const win = window.open();
-    win.document.write('<iframe src="' + dataURL + '" frameborder="0" style="border:0; top:0; left:0; bottom:0; right:0; width:100%; height:100%;" allowfullscreen></iframe>');
-};
+  function shareCanvas() {
+    canvas.toBlob(blob => {
+      const file = new File([blob], 'whiteboard.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({
+          files: [file],
+          title: 'Whiteboard Drawing',
+          text: 'Check out this drawing!',
+        });
+      } else {
+        alert('Sharing not supported on this browser.');
+      }
+    });
+  }
 
+  canvas.addEventListener('mousedown', startDrawing);
+  canvas.addEventListener('mousemove', draw);
+  canvas.addEventListener('mouseup', endDrawing);
+  canvas.addEventListener('mouseout', endDrawing);
 
-
-// Dark Mode Toggle Slider with Sun and Moon
-const toggleContainer = document.createElement('label');
-toggleContainer.className = 'toggle-switch';
-toggleContainer.title = 'Toggle Dark Mode';
-
-const toggleInput = document.createElement('input');
-toggleInput.type = 'checkbox';
-
-const toggleSlider = document.createElement('span');
-toggleSlider.className = 'slider';
-
-// Append elements
-toggleContainer.appendChild(toggleInput);
-toggleContainer.appendChild(toggleSlider);
-document.getElementById('toolbar').appendChild(toggleContainer);
-
-// Toggle event
-toggleInput.addEventListener('change', () => {
-  document.body.classList.toggle('dark-mode');
-});
-
-
-
-
-
-
-
-document.getElementById('bgColorInput').addEventListener('input', (e) => {
-    const color = e.target.value;
-    document.documentElement.style.setProperty('--canvas-bg', color);
-    canvas.style.backgroundColor = color;
+  colorPicker.addEventListener('input', (e) => {
+    color = e.target.value;
   });
-  
 
-
-
-
-
-
-
-
-
-  // Highlight Mode
-document.getElementById('highlightBtn').addEventListener('click', () => {
-    currentMode = 'highlight';
-    brushColor = document.getElementById('colorPicker').value;
-    brushWidth = 10 ; // Set a thicker line width for highlighting
+  toolSelector.addEventListener('change', (e) => {
+    currentTool = e.target.value;
   });
-  
-  // Highlight Drawing Function
-  function draw(e) {
-      if (!painting) return;
-  
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
-  
-      ctx.lineWidth = brushWidth ;
-      ctx.strokeStyle = brushColor;
-      ctx.globalAlpha = currentMode === 'highlight' ? 0.1 : 1; // Transparent for highlighter mode
-  
-      ctx.lineTo(x, y);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-  }
 
-  
-
-
-
-
-// Zoom Controls
-const zoomInBtn = document.getElementById('zoomIn');
-const zoomOutBtn = document.getElementById('zoomOut');
-const zoomLevelText = document.getElementById('zoomLevel');
-const zoomSlider = document.getElementById('zoomSlider');
-
-const MAX_ZOOM = 2; // Maximum zoom level
-const MIN_ZOOM = 0.1; // Minimum zoom level
-let scale = 1; // Default scale
-const zoomFactor = 0.1;
-
-// Apply zoom level
-function applyZoom() {
-  canvas.style.transform = `scale(${scale})`;
-  canvas.style.transformOrigin = 'center center';
-  zoomLevelText.textContent = `${Math.round(scale * 100)}%`;
-  zoomSlider.value = scale * 100; // Update slider position
-
-  // Ensure canvas doesn't overflow the viewport
-  checkCanvasOverflow();
-}
-
-// Zoom In and Out buttons
-zoomInBtn.addEventListener('click', () => {
-  if (scale < MAX_ZOOM) {
-    scale += zoomFactor;
-    applyZoom();
-  }
+  undoBtn.addEventListener('click', undo);
+  redoBtn.addEventListener('click', redo);
+  clearCanvasBtn.addEventListener('click', clearCanvas);
+  downloadBtn.addEventListener('click', downloadCanvas);
+  shareBtn.addEventListener('click', shareCanvas);
 });
-
-zoomOutBtn.addEventListener('click', () => {
-  if (scale > MIN_ZOOM) {
-    scale -= zoomFactor;
-    applyZoom();
-  }
-});
-
-// Zoom Slider
-zoomSlider.addEventListener('input', (e) => {
-  scale = e.target.value / 100; // Convert percentage to scale factor
-  applyZoom();
-});
-
-// Prevent canvas from overflowing the viewport
-function checkCanvasOverflow() {
-  const canvasRect = canvas.getBoundingClientRect();
-  const bodyRect = document.body.getBoundingClientRect();
-
-  // Prevent the canvas from being larger than the viewport (minus toolbar space)
-  if (canvasRect.width > bodyRect.width) {
-    canvas.style.width = `${bodyRect.width}px`;
-  }
-
-  if (canvasRect.height > bodyRect.height - document.getElementById('toolbar').offsetHeight) {
-    canvas.style.height = `${bodyRect.height - document.getElementById('toolbar').offsetHeight}px`;
-  }
-}
-
-// Optional: Reset zoom on resize
-window.addEventListener('resize', () => {
-  if (scale !== 1) {
-    scale = 1;
-    applyZoom();
-  }
-});
-
-
-canvas.addEventListener('wheel', (e) => {
-    e.preventDefault();
-    if (e.deltaY < 0 && scale < MAX_ZOOM) {
-      scale += zoomFactor;
-    } else if (e.deltaY > 0 && scale > MIN_ZOOM) {
-      scale -= zoomFactor;
-    }
-    applyZoom();
-  });
-  
-
-// Initial zoom application
-applyZoom();
-
-
-
-
-
-
-
