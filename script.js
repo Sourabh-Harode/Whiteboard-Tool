@@ -9,6 +9,9 @@ document.addEventListener('DOMContentLoaded', () => {
   const downloadBtn = document.getElementById('downloadBtn');
   const shareBtn = document.getElementById('shareBtn');
   const bgColorPicker = document.getElementById('bgColorPicker');
+  const zoomInBtn = document.getElementById('zoomInBtn');
+  const zoomOutBtn = document.getElementById('zoomOutBtn');
+  const resetZoomBtn = document.getElementById('resetZoomBtn');
 
   let drawing = false;
   let currentTool = 'pen';
@@ -18,13 +21,39 @@ document.addEventListener('DOMContentLoaded', () => {
   let undonePaths = [];
   let currentPath = [];
 
-  function applyBackgroundColor() {
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+  let scale = 1;
+  const scaleStep = 0.1;
+  const minScale = 0.5;
+  const maxScale = 3;
+  const dpr = window.devicePixelRatio || 1;
+
+  // Resize and scale canvas
+  function setupCanvas() {
+    const width = canvas.offsetWidth;
+    const height = canvas.offsetHeight;
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+    ctx.scale(dpr * scale, dpr * scale); // Apply scale and devicePixelRatio
+    applyBackgroundColor();
+    redrawCanvas();
   }
 
-  applyBackgroundColor();
+  function applyBackgroundColor() {
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+  }
+
+  function getMousePos(e) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: (e.clientX - rect.left) / (scale),
+      y: (e.clientY - rect.top) / (scale)
+    };
+  }
 
   function startDrawing(e) {
     drawing = true;
@@ -42,7 +71,7 @@ document.addEventListener('DOMContentLoaded', () => {
     ctx.lineTo(pos.x, pos.y);
     ctx.lineWidth = currentTool === 'marker' ? 6 : currentTool === 'eraser' ? 20 : 2;
     ctx.strokeStyle = currentTool === 'eraser' ? bgColor : color;
-    ctx.globalCompositeOperation = 'source-over'; // Always draw over
+    ctx.globalCompositeOperation = 'source-over';
     ctx.stroke();
 
     currentPath.push({
@@ -62,16 +91,10 @@ document.addEventListener('DOMContentLoaded', () => {
     ctx.closePath();
   }
 
-  function getMousePos(e) {
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    };
-  }
-
   function redrawCanvas() {
+    ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset before clearing
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.scale(dpr * scale, dpr * scale); // Reapply zoom and resolution
     applyBackgroundColor();
 
     for (const path of paths) {
@@ -109,7 +132,9 @@ document.addEventListener('DOMContentLoaded', () => {
   function clearCanvas() {
     paths = [];
     undonePaths = [];
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.scale(dpr * scale, dpr * scale);
     applyBackgroundColor();
   }
 
@@ -135,7 +160,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Event Listeners
+  zoomInBtn.addEventListener('click', () => {
+    if (scale < maxScale) {
+      scale += scaleStep;
+      setupCanvas();
+    }
+  });
+
+  zoomOutBtn.addEventListener('click', () => {
+    if (scale > minScale) {
+      scale -= scaleStep;
+      setupCanvas();
+    }
+  });
+
+  resetZoomBtn.addEventListener('click', () => {
+    scale = 1;
+    setupCanvas();
+  });
+
   canvas.addEventListener('mousedown', startDrawing);
   canvas.addEventListener('mousemove', draw);
   canvas.addEventListener('mouseup', endDrawing);
@@ -157,6 +200,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   bgColorPicker.addEventListener('input', (e) => {
     bgColor = e.target.value;
-    redrawCanvas(); // Apply to whole canvas
+    redrawCanvas();
   });
+
+  // Initialize high-res canvas
+  setupCanvas();
+  window.addEventListener('resize', setupCanvas);
 });
